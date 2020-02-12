@@ -795,7 +795,6 @@ class Html5Video extends paella.VideoElementBase {
 	constructor(id,stream,left,top,width,height,streamName) {
 		super(id,stream,'video',left,top,width,height);
 
-		this._posterFrame = null;
 		this._currentQuality = null;
 		this._autoplay = false;
 
@@ -918,6 +917,7 @@ class Html5Video extends paella.VideoElementBase {
 				$(this.video).bind('canplay',() => {
 					processResult(action());
 					$(this.video).unbind('canplay');
+					$(this.video).unbind('loadedmetadata');
 				});
 			}
 		});

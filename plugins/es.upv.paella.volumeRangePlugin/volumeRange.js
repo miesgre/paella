@@ -7,7 +7,6 @@ paella.addPlugin(function() {
 		getName() { return "es.upv.paella.volumeRangePlugin"; }
 		getDefaultToolTip() { return base.dictionary.translate("Volume"); }
 		getIndex() {return 9999;}
-		getAriaLabel() { return base.dictionary.translate("Volume"); }
 
 		checkEnabled(onSuccess) {
 			this._tempMasterVolume = 0;
@@ -91,6 +90,7 @@ paella.addPlugin(function() {
 				rangeInput.value = params.master;
 				this.updateClass();
 			});
+			this.updateClass();
 
 			return rangeInput;
 		}
