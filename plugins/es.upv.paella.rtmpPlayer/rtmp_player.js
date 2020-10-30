@@ -32,15 +32,15 @@ class RTMPVideo extends paella.VideoElementBase {
 			if (eventName=="progress") {
 				try { This.flashVideo.setVolume(This._volume); }
 				catch(e) {}
-				base.log.debug("Flash video event: " + eventName + ", progress: " + This.flashVideo.currentProgress());
+				paella.log.debug("Flash video event: " + eventName + ", progress: " + This.flashVideo.currentProgress());
 			}
 			else if (eventName=="ended") {
-				base.log.debug("Flash video event: " + eventName);
+				paella.log.debug("Flash video event: " + eventName);
 				paella.events.trigger(paella.events.pause);
 				paella.player.controls.showControls();
 			}
 			else {
-				base.log.debug("Flash video event: " + eventName);
+				paella.log.debug("Flash video event: " + eventName);
 			}
 		};
 
@@ -96,13 +96,13 @@ class RTMPVideo extends paella.VideoElementBase {
 					var message = document.createElement('div');
 
 					var header = document.createElement('h3');
-					header.innerText = base.dictionary.translate("Flash player problem");
+					header.innerText = paella.utils.dictionary.translate("Flash player problem");
 					var text = document.createElement('div');
-					text.innerHTML = base.dictionary.translate("A problem occurred trying to load flash player.") + "<br>" +
-						base.dictionary.translate("Please go to {0} and install it.")
+					text.innerHTML = paella.utils.dictionary.translate("A problem occurred trying to load flash player.") + "<br>" +
+						paella.utils.dictionary.translate("Please go to {0} and install it.")
 							.replace("{0}", "<a style='color: #800000; text-decoration: underline;' href='http://www.adobe.com/go/getflash'>http://www.adobe.com/go/getflash</a>") + '<br>' +
 
-						base.dictionary.translate("If the problem presist, contact us.");
+						paella.utils.dictionary.translate("If the problem presist, contact us.");
 
 					var link = document.createElement('a');
 					link.setAttribute("href", "http://www.adobe.com/go/getflash");
@@ -120,12 +120,12 @@ class RTMPVideo extends paella.VideoElementBase {
 			var message = document.createElement('div');
 
 			var header = document.createElement('h3');
-			header.innerText = base.dictionary.translate("Flash player needed");
+			header.innerText = paella.utils.dictionary.translate("Flash player needed");
 
 			var text = document.createElement('div');
 
-			text.innerHTML = base.dictionary.translate("You need at least Flash player 9 installed.") + "<br>" +
-				base.dictionary.translate("Please go to {0} and install it.")
+			text.innerHTML = paella.utils.dictionary.translate("You need at least Flash player 9 installed.") + "<br>" +
+				paella.utils.dictionary.translate("Please go to {0} and install it.")
 					.replace("{0}", "<a style='color: #800000; text-decoration: underline;' href='http://www.adobe.com/go/getflash'>http://www.adobe.com/go/getflash</a>");
 
 			var link = document.createElement('a');
@@ -235,7 +235,7 @@ class RTMPVideo extends paella.VideoElementBase {
 				if (this._autoplay) {
 					parameters.autoplay = this._autoplay;
 				}
-				if (base.parameters.get('debug')=="true") {
+				if (paella.utils.parameters.get('debug')=="true") {
 					parameters.debugMode = true;
 				}
 
@@ -405,7 +405,7 @@ paella.RTMPVideo = RTMPVideo;
 class RTMPVideoFactory extends paella.VideoFactory {
 	isStreamCompatible(streamData) {
 		try {
-			if (base.userAgent.system.iOS || base.userAgent.system.Android) {
+			if (paella.utils.userAgent.system.iOS || paella.utils.userAgent.system.Android) {
 				return false;
 			}
 			for (var key in streamData.sources) {

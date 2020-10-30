@@ -17,7 +17,7 @@ paella.addPlugin(function() {
 		getSubclass() { return "footPrints"; }
 		getIconClass() { return 'icon-stats'; }
 		getIndex() { return 590; }
-		getDefaultToolTip() { return base.dictionary.translate("Show statistics"); }
+		getDefaultToolTip() { return paella.utils.dictionary.translate("Show statistics"); }
 		getName() { return "es.upv.paella.footprintsPlugin"; }
 		getButtonType() { return paella.ButtonPlugin.type.timeLineButton; }
 	
@@ -98,7 +98,7 @@ paella.addPlugin(function() {
 		willShowContent() {
 			var thisClass = this;
 			this.loadFootprints();
-			this.footPrintsTimer = new base.Timer(function(timer) {
+			this.footPrintsTimer = new paella.utils.Timer(function(timer) {
 				thisClass.loadFootprints();
 			},5000);
 			this.footPrintsTimer.repeat = true;

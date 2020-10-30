@@ -12,6 +12,7 @@
 				debug: false,
 				defaultAudioCodec: undefined,
 				initialLiveManifestSize: 1,
+				initialQualityLevel: 1,
 				maxBufferLength: 30,
 				maxMaxBufferLength: 600,
 				maxBufferSize: 60*1000*1000,
@@ -88,10 +89,11 @@
 		_loadDeps() {
 			return new Promise((resolve,reject) => {
 				if (!window.$paella_hls) {
-					require([paella.baseUrl +'resources/deps/hls.min.js'],function(hls) {
-						window.$paella_hls = hls;
-						resolve(window.$paella_hls);
-					});
+					paella.require(paella.baseUrl +'javascript/hls.min.js')
+						.then((hls) => {
+							window.$paella_hls = hls;
+							resolve(window.$paella_hls);
+						});
 				}
 				else {
 					resolve(window.$paella_hls);
@@ -128,13 +130,10 @@
 					$(this.video).bind('loadedmetadata',eventFunction);
 					let timerFunction = () => {
 						if (!this.ready) {
-							console.debug("HLS video resume failed. Trying to recover.");
-							if (this._hls) {
-								this._hls.recoverMediaError();
-							}
-							else {
+							if (!this._hls) {
 								// iOS
 								// In this way the recharge is forced, and it is possible to recover errors.
+								console.debug("HLS video resume failed. Trying to recover.");
 								let src = this.video.innerHTML;
 								this.video.innerHTML = "";
 								this.video.innerHTML = src;
@@ -176,8 +175,15 @@
 								if (data.fatal) {
 									switch (data.type) {
 									case Hls.ErrorTypes.NETWORK_ERROR:
-										console.error("paella.HLSPlayer: Fatal network error encountered, try to recover");
-										this._hls.startLoad();
+										if (data.details == Hls.ErrorDetails.MANIFEST_LOAD_ERROR) {
+											// TODO: Manifest file not found
+											console.error("paella.HLSPlayer: unrecoverable error in HLS Player. The video is not available.");
+											reject(new Error("No such HLS stream: the video is not available"));
+										}
+										else {
+											console.error("paella.HLSPlayer: Fatal network error encountered, try to recover");
+											this._hls.startLoad();
+										}
 										break;
 									case Hls.ErrorTypes.MEDIA_ERROR:
 										console.error("paella.HLSPlayer: Fatal media error encountered, try to recover");
@@ -211,7 +217,7 @@
 		}
 
 		webGlDidLoad() {
-			if (base.userAgent.system.iOS) {
+			if (paella.utils.userAgent.system.iOS) {
 				return super.webGlDidLoad();
 			}
 			// Register a new video loader in the webgl engine, to enable the
@@ -227,7 +233,7 @@
 		}
 
 		loadVideoStream(canvasInstance,stream) {
-			if (base.userAgent.system.iOS) {
+			if (paella.utils.userAgent.system.iOS) {
 				return super.loadVideoStream(canvasInstance,stream);
 			}
 
@@ -235,10 +241,94 @@
 				return this.setupHls(videoElem,stream.src);
 			});
 		}
+
+		supportsMultiaudio() {
+			return this._deferredAction(() => {
+				if (paella.utils.userAgent.system.iOS) {
+					return this.video.audioTracks.length>1;
+				}
+				else {
+					return this._hls.audioTracks.length>1;
+				}
+			});
+		}
+	
+		getAudioTracks() {
+			return this._deferredAction(() => {
+				if (paella.utils.userAgent.system.iOS) {
+					let result = [];
+					Array.from(this.video.audioTracks).forEach((t) => {
+						result.push({
+							id: t.id,
+							groupId: "",
+							name: t.label,
+							lang: t.language
+						});
+					})
+					return result;
+				}
+				else {
+					return this._hls.audioTracks;
+				}
+			});
+		}
+
+		setCurrentAudioTrack(trackId) {
+			return this._deferredAction(() => {
+				if (paella.utils.userAgent.system.iOS) {
+					let found = false;
+					Array.from(this.video.audioTracks).forEach((track) => {
+						if (track.id==trackId) {
+							found = true;
+							track.enabled = true;
+						}
+						else {
+							track.enabled = false;
+						}
+					});
+					return found;
+				}
+				else {
+					if (this._hls.audioTracks.some((track) => track.id==trackId)) {
+						this._hls.audioTrack = trackId;
+						return true;
+					}
+					else {
+
+						return false;
+					}
+				}
+			});
+		}
+
+		getCurrentAudioTrack() {
+			return this._deferredAction(() => {
+				if (paella.utils.userAgent.system.iOS) {
+					let result = null;
+					Array.from(this.video.audioTracks).some((t) => {
+						if (t.enabled) {
+							result = t;
+							return true;
+						}
+					});
+					return result;
+				}
+				else {
+					let result = null;
+					this._hls.audioTracks.some((t) => {
+						if (t.id==this._hls.audioTrack) {
+							result = t;
+							return true;
+						}
+					});
+					return result;
+				}
+			})
+		}
 	
 		getQualities() {
-			if (base.userAgent.system.iOS)// ||
-		//		base.userAgent.browser.Safari)
+			if (paella.utils.userAgent.system.iOS)// ||
+		//		paella.utils.userAgent.browser.Safari)
 			{
 				return new Promise((resolve,reject) => {
 					resolve([
@@ -282,7 +372,7 @@
 		}
 
 		disable(isMainAudioPlayer) {
-			if (base.userAgent.system.iOS) {
+			if (paella.utils.userAgent.system.iOS) {
 				return;
 			}
 			
@@ -310,8 +400,8 @@
 		}
 		
 		setQuality(index) {
-			if (base.userAgent.system.iOS)// ||
-				//base.userAgent.browser.Safari)
+			if (paella.utils.userAgent.system.iOS)// ||
+				//paella.utils.userAgent.browser.Safari)
 			{
 				return Promise.resolve();
 			}
@@ -344,8 +434,8 @@
 		}
 		
 		getCurrentQuality() {
-			if (base.userAgent.system.iOS)// ||
-				//base.userAgent.browser.Safari)
+			if (paella.utils.userAgent.system.iOS)// ||
+				//paella.utils.userAgent.browser.Safari)
 			{
 				return Promise.resolve(0);
 			}
@@ -381,9 +471,9 @@
 			}
 			try {
 				let cfg = this.config;
-				if ((base.userAgent.system.iOS &&
+				if ((paella.utils.userAgent.system.iOS &&
 					paella.videoFactories.HLSVideoFactory.s_instances>=cfg.iOSMaxStreams) ||
-					(base.userAgent.system.Android &&
+					(paella.utils.userAgent.system.Android &&
 					paella.videoFactories.HLSVideoFactory.s_instances>=cfg.androidMaxStreams))
 			//	In some old mobile devices, playing a high number of HLS streams may cause that the browser tab crash
 				{

@@ -189,7 +189,7 @@ class VideoWrapper extends paella.DomNode {
 	}
 
 	setVisible(visible,animate) {
-		if (typeof(visible=="string")) {
+		if (typeof(visible)=="string") {
 			visible = /true/i.test(visible) ? true : false;
 		}
 		if (visible && animate) {
@@ -200,7 +200,7 @@ class VideoWrapper extends paella.DomNode {
 			$(this.domElement).show();
 		}
 		else if (!visible && animate) {
-			$(this.domElement).animate({opacity:0.0},300);
+			$(this.domElement).animate({opacity:0.0},300, () => $(this.domElement).hide());
 		}
 		else if (!visible && !animate) {
 			$(this.domElement).hide();
@@ -362,7 +362,7 @@ class VideoContainerBase extends paella.DomNode {
 	}
 
 	startTimeupdate() {
-		this.timeupdateEventTimer = new Timer((timer) => {
+		this.timeupdateEventTimer = new paella.utils.Timer((timer) => {
 			this.triggerTimeupdate();
 		}, this.timeupdateInterval);
 		this.timeupdateEventTimer.repeat = true;
@@ -608,30 +608,30 @@ class VideoContainerBase extends paella.DomNode {
 	}
 
 	setCurrentTime(time) {
-		base.log.debug("VideoContainerBase.setCurrentTime(" +  time + ")");
+		paella.log.debug("VideoContainerBase.setCurrentTime(" +  time + ")");
 	}
 
 	currentTime() {
-		base.log.debug("VideoContainerBase.currentTime()");
+		paella.log.debug("VideoContainerBase.currentTime()");
 		return 0;
 	}
 
 	duration() {
-		base.log.debug("VideoContainerBase.duration()");
+		paella.log.debug("VideoContainerBase.duration()");
 		return 0;
 	}
 
 	paused() {
-		base.log.debug("VideoContainerBase.paused()");
+		paella.log.debug("VideoContainerBase.paused()");
 		return true;
 	}
 
 	setupVideo(onSuccess) {
-		base.log.debug("VideoContainerBase.setupVide()");
+		paella.log.debug("VideoContainerBase.setupVide()");
 	}
 
 	isReady() {
-		base.log.debug("VideoContainerBase.isReady()");
+		paella.log.debug("VideoContainerBase.isReady()");
 		return true;
 	}
 
@@ -702,6 +702,21 @@ class LimitedSizeProfileFrameStrategy extends ProfileFrameStrategy {
 
 paella.LimitedSizeProfileFrameStrategy = LimitedSizeProfileFrameStrategy;
 
+function updateBuffers() {
+	// Initial implementation: use the mainStream buffered property
+	let mainBuffered = this.mainPlayer && this.mainPlayer.buffered;
+	if (mainBuffered) {
+		this._bufferedData = [];
+
+		for (let i = 0; i<mainBuffered.length; ++i) {
+			this._bufferedData.push({
+				start: mainBuffered.start(i),
+				end: mainBuffered.end(i)
+			});
+		}
+	}
+}
+
 class StreamProvider {
 	constructor(videoData) {
 		this._mainStream = null;
@@ -714,8 +729,37 @@ class StreamProvider {
 		this._audioPlayers = [];
 		this._players = [];
 
-		this._autoplay = base.parameters.get('autoplay')=='true' || this.isLiveStreaming;
+		this._autoplay = paella.utils.parameters.get('autoplay')=='true' || this.isLiveStreaming;
 		this._startTime = 0;
+
+		this._bufferedData = [];
+		let streamProvider = this;
+		this._buffered = {
+			start: function(index) {
+				if (index<0 || index>=streamProvider._bufferedData.length) {
+					throw new Error("Buffered index out of bounds.");
+				}		
+				return streamProvider._bufferedData[index].start;
+			},
+
+			end: function(index) {
+				if (index<0 || index>=streamProvider._bufferedData.length) {
+					throw new Error("Buffered index out of bounds.");
+				}
+				return streamProvider._bufferedData[index].end;
+			}
+		}
+
+		Object.defineProperty(this._buffered, "length", {
+			get: function() {
+				return streamProvider._bufferedData.length;
+			}
+		});
+	}
+
+	get buffered() {
+		updateBuffers.apply(this);
+		return this._buffered;
 	}
 
 	init(videoData) {
@@ -900,6 +944,10 @@ class StreamProvider {
 		return this._audioPlayer;
 	}
 
+	get mainPlayer() {
+		return this.mainVideoPlayer || this.mainAudioPlayer;
+	}
+
 	get isLiveStreaming() {
 		return paella.player.isLiveStream();
 	}
@@ -970,11 +1018,15 @@ class VideoContainer extends paella.VideoContainerBase {
 		this.setVideoQualityStrategy(paella.VideoQualityStrategy.Factory());
 
 		this._audioTag = paella.player.config.player.defaultAudioTag ||
-						 paella.dictionary.currentLanguage();
+						 paella.utils.dictionary.currentLanguage();
 		this._audioPlayer = null;
 
 		// Initial volume level
 		this._volume = paella.utils.cookies.get("volume") ? Number(paella.utils.cookies.get("volume")) : 1;
+		if (paella.player.startMuted)
+		{
+			this._volume = 0;
+		}
 		this._muted = false;
 	}
 
@@ -1279,8 +1331,8 @@ class VideoContainer extends paella.VideoContainerBase {
 	}
 
 	setStreamData(videoData) {
-		var urlParamTime = base.parameters.get("time");
-		var hashParamTime = base.hashParams.get("time");
+		var urlParamTime = paella.utils.parameters.get("time");
+		var hashParamTime = paella.utils.hashParams.get("time");
 		var timeString = hashParamTime ? hashParamTime:urlParamTime ? urlParamTime:"0s";
 		var startTime = paella.utils.timeParse.timeToSeconds(timeString);
 		if (startTime) {
@@ -1366,8 +1418,8 @@ class VideoContainer extends paella.VideoContainerBase {
 
 					this._ready = true;
 					paella.events.trigger(paella.events.videoReady);
-					let profileToUse = base.parameters.get('profile') ||
-										base.cookies.get('profile') ||
+					let profileToUse = paella.utils.parameters.get('profile') ||
+										paella.utils.cookies.get('profile') ||
 										paella.profiles.getDefaultProfile();
 
 					if (paella.profiles.setProfile(profileToUse, false)) {

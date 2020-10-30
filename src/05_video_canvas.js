@@ -431,41 +431,21 @@
                             sourceElem.src = stream.src;
                             sourceElem.type = stream.type;
                             video.load();
-                            video.playbackRate = video._playbackRate || 1;
+                            video.playbackRate = videoPlugin._playbackRate || 1;
                             cbResolve();
                         })
                     };
 
-                    doLoadCallback(videoPlugin.video).then(() => {
-                        resolve(stream);
-                    });
+                    doLoadCallback(videoPlugin.video)
+                        .then(() => {
+                            resolve(stream);
+                        })
+                        .catch((err) => {
+                            reject(err);
+                        });
                 });
             }
         }
     });
-
-    /*
-    
-    paella.getVideoCanvas = function(type, stream) {
-        console.log("TODO: Remove paella.getVideoCanvas() function");
-        return new Promise((resolve,reject) => {
-            if (!window.$paella_bg) {
-                paella.require(`${ paella.baseUrl }javascript/bg2e-es2015.js`)
-                    .then(() => {
-                        window.$paella_bg = bg;
-                        loadCanvasPlugins();
-                        resolve(buildVideoCanvas(stream));
-                    })
-                    .catch((err) => {
-                        console.error(err);
-                        reject(err);
-                    });
-            }
-            else {
-                resolve(buildVideoCanvas(stream));
-            }
-        });
-    }
-    */
     
 })();

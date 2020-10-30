@@ -42,7 +42,7 @@ paella.Profiles = {
 				profileData = data[defaultProfile];
 			} else {
 				// Unable to find or map defaultProfile in profiles.json
-				base.log.debug("Error loading the default profile. Check your Paella Player configuration");
+				paella.log.debug("Error loading the default profile. Check your Paella Player configuration");
 				return false;
 			}
 			onSuccessFunction(profileData);
@@ -54,7 +54,7 @@ paella.Profiles = {
 		if (this.profileList == null) {
 			var params = { url: paella.utils.folders.profiles() + "/profiles.json" };
 	
-			base.ajax.get(params,function(data,mimetype,code) {
+			paella.utils.ajax.get(params,function(data,mimetype,code) {
 					if (typeof(data)=="string") {
 						data = JSON.parse(data);
 					}
@@ -62,7 +62,7 @@ paella.Profiles = {
 					onSuccessFunction(thisClass.profileList);
 				},
 				function(data,mimetype,code) {
-					base.log.debug("Error loading video profiles. Check your Paella Player configuration");
+					paella.log.debug("Error loading video profiles. Check your Paella Player configuration");
 				}
 			);
 		}
@@ -407,7 +407,7 @@ class VideoRect extends paella.DomNode {
 
 			let altScrollMessageContainer = document.createElement('div');
 			altScrollMessageContainer.className = "alt-scroll-message-container";
-			altScrollMessageContainer.innerHTML = "<p>" + paella.dictionary.translate("Use Alt+Scroll to zoom the video") + "</p>";
+			altScrollMessageContainer.innerHTML = "<p>" + paella.utils.dictionary.translate("Use Alt+Scroll to zoom the video") + "</p>";
 			eventCapture.appendChild(altScrollMessageContainer);
 			$(altScrollMessageContainer).css({ opacity: 0.0 });
 			let altScrollMessageTimer = null;
@@ -616,7 +616,7 @@ class VideoElementBase extends paella.VideoRect {
 	}
 
 	setPosterFrame(url) {
-		base.log.debug("TODO: implement setPosterFrame() function");
+		paella.log.debug("TODO: implement setPosterFrame() function");
 	}
 
 	setAutoplay(autoplay) {
@@ -640,58 +640,75 @@ class VideoElementBase extends paella.VideoRect {
 		return Promise.reject(new Error("VideoElementBase::videoCanvas(): Not implemented in child class."));
 	}
 
+	// Multi audio functions
+	supportsMultiaudio() {
+		return Promise.resolve(false);
+	}
+
+	getAudioTracks() {
+		return Promise.resolve([]);
+	}
+
+	setCurrentAudioTrack(trackId) {
+		return Promise.resolve(false);
+	}
+
+	getCurrentAudioTrack() {
+		return Promise.resolve(-1);
+	}
+
 	// Playback functions
 	getVideoData() {
 		return paella_DeferredNotImplemented();
 	}
 	
 	play() {
-		base.log.debug("TODO: implement play() function in your VideoElementBase subclass");
+		paella.log.debug("TODO: implement play() function in your VideoElementBase subclass");
 		return paella_DeferredNotImplemented();
 	}
 
 	pause() {
-		base.log.debug("TODO: implement pause() function in your VideoElementBase subclass");
+		paella.log.debug("TODO: implement pause() function in your VideoElementBase subclass");
 		return paella_DeferredNotImplemented();
 	}
 
 	isPaused() {
-		base.log.debug("TODO: implement isPaused() function in your VideoElementBase subclass");
+		paella.log.debug("TODO: implement isPaused() function in your VideoElementBase subclass");
 		return paella_DeferredNotImplemented();
 	}
 
 	duration() {
-		base.log.debug("TODO: implement duration() function in your VideoElementBase subclass");
+		paella.log.debug("TODO: implement duration() function in your VideoElementBase subclass");
 		return paella_DeferredNotImplemented();
 	}
 
 	setCurrentTime(time) {
-		base.log.debug("TODO: implement setCurrentTime() function in your VideoElementBase subclass");
+		paella.log.debug("TODO: implement setCurrentTime() function in your VideoElementBase subclass");
 		return paella_DeferredNotImplemented();
 	}
 
 	currentTime() {
-		base.log.debug("TODO: implement currentTime() function in your VideoElementBase subclass");
+		paella.log.debug("TODO: implement currentTime() function in your VideoElementBase subclass");
 		return paella_DeferredNotImplemented();
 	}
 
 	setVolume(volume) {
-		base.log.debug("TODO: implement setVolume() function in your VideoElementBase subclass");
+		paella.log.debug("TODO: implement setVolume() function in your VideoElementBase subclass");
 		return paella_DeferredNotImplemented();
 	}
 
 	volume() {
-		base.log.debug("TODO: implement volume() function in your VideoElementBase subclass");
+		paella.log.debug("TODO: implement volume() function in your VideoElementBase subclass");
 		return paella_DeferredNotImplemented();
 	}
 
 	setPlaybackRate(rate) {
-		base.log.debug("TODO: implement setPlaybackRate() function in your VideoElementBase subclass");
+		paella.log.debug("TODO: implement setPlaybackRate() function in your VideoElementBase subclass");
 		return paella_DeferredNotImplemented();
 	}
 
 	playbackRate() {
-		base.log.debug("TODO: implement playbackRate() function in your VideoElementBase subclass");
+		paella.log.debug("TODO: implement playbackRate() function in your VideoElementBase subclass");
 		return paella_DeferredNotImplemented();
 	}
 
@@ -809,7 +826,7 @@ class Html5Video extends paella.VideoElementBase {
 
 		this.video.preload = "auto";
 		this.video.setAttribute("playsinline","");
-		this.video.setAttribute("tabindex","-1");
+		//this.video.setAttribute("tabindex","-1");
 
 		this._configureVideoEvents(this.video);
 	}
@@ -858,6 +875,10 @@ class Html5Video extends paella.VideoElementBase {
 		}
 	}
 	
+	get buffered() {
+		return this.video && this.video.buffered;
+	}
+
 	get video() {
 		if (this.domElementType=='video') {
 			return this.domElement;
@@ -1300,7 +1321,7 @@ class Html5VideoFactory {
 	isStreamCompatible(streamData) {
 		try {
 			if (paella.videoFactories.Html5VideoFactory.s_instances>0 && 
-				base.userAgent.system.iOS &&
+				paella.utils.userAgent.system.iOS &&
 				(paella.utils.userAgent.system.Version.major<=10 && paella.utils.userAgent.system.Version.minor<3))
 			{
 				return false;
@@ -1502,7 +1523,7 @@ class ImageVideo extends paella.VideoElementBase {
 	play() {
 		let This = this;
 		return this._deferredAction(() => {
-			This._playTimer = new base.Timer(function() {
+			This._playTimer = new paella.utils.Timer(function() {
 				This._currentTime += 0.25 * This._playbackRate;
 				This._loadCurrentFrame();
 			}, 250);
